@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "user-library"
+version = "0.1.0"
+description = "Common utility functions for math and formatting"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "shapely",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["mjh_math*", "print_format*", "system_utils*"]

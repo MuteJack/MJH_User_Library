@@ -1,0 +1,149 @@
+# system_utils 모듈
+
+시스템 유틸리티 - 로깅 설정 및 관리
+
+## 설치
+
+```python
+from system_utils import get_logger, setup_logger
+```
+
+---
+
+## 개요
+
+듀얼 출력(콘솔 + 파일)을 지원하는 로거를 제공합니다.
+
+### 로그 레벨 라우팅
+
+| 레벨 | 숫자 | 콘솔 | info.log | debug.log |
+|------|------|------|----------|-----------|
+| DEBUG | 10 | ❌ | ❌ | ✅ |
+| FUTUREWARN | 19 | ❌ | ❌ | ✅ |
+| INFO | 20 | ✅ | ✅ | ❌ |
+| WARNING | 30 | ✅ | ✅ | ❌ |
+| ERROR | 40 | ✅ | ✅ | ❌ |
+
+---
+
+## get_logger(name, **kwargs)
+
+로거 인스턴스를 가져옵니다.
+
+**Args:**
+- `name` (Optional[str]): 로거 이름 (None이면 전역 로거 반환)
+- `**kwargs`: setup_logger에 전달할 추가 인자
+
+**Returns:**
+- `logger` (logging.Logger): 로거 인스턴스
+
+**Example:**
+```python
+>>> from system_utils import get_logger
+>>> logger = get_logger()
+>>> logger.info("Application started")
+2024-01-01 12:00:00, [INFO], [my_script.py], Application started
+```
+
+---
+
+## setup_logger(name, level, log_dir, console, file)
+
+듀얼 출력(콘솔 + 파일)을 가진 로거를 설정합니다.
+
+**Args:**
+- `name` (str): 로거 이름 (default: "GAIL")
+- `level` (int): 콘솔 로깅 레벨 (default: INFO)
+- `log_dir` (str): 로그 파일 저장 디렉토리 (default: "logs")
+- `console` (bool): 콘솔 출력 활성화 (default: True)
+- `file` (bool): 파일 출력 활성화 (default: True)
+
+**Returns:**
+- `logger` (logging.Logger): 로거 인스턴스
+
+**Example:**
+```python
+>>> from system_utils import setup_logger
+>>> logger = setup_logger("MyApp", log_dir="my_logs")
+```
+
+---
+
+## 로그 파일 구조
+
+```
+logs/
+├── log_20240101_120000_info.log   # INFO 이상 로그
+└── log_20240101_120000_debug.log  # DEBUG ~ FUTUREWARN 로그
+```
+
+### 로그 포맷
+
+```
+{timestamp}, [{level}], [{filename}], {message}
+```
+
+예시:
+```
+2024-01-01 12:00:00, [INFO], [simulation.py], Simulation started
+2024-01-01 12:00:01, [WARN], [vehicle.py], Vehicle speed exceeds limit
+```
+
+---
+
+## FutureWarning 처리
+
+Python의 FutureWarning을 자동으로 로거로 리다이렉트합니다:
+- **콘솔/info.log**: 요약만 표시 (WARNING 레벨)
+- **debug.log**: 상세 정보 표시 (FUTUREWARN 레벨)
+
+```python
+import warnings
+warnings.warn("This feature will be deprecated", FutureWarning)
+# 콘솔: FutureWarning in my_script.py:10
+# debug.log: 전체 스택 트레이스
+```
+
+---
+
+## 활용 예시
+
+### 기본 사용
+
+```python
+from system_utils import get_logger
+
+logger = get_logger()
+
+logger.debug("Debug message")      # debug.log에만 저장
+logger.info("Info message")        # 콘솔 + info.log
+logger.warning("Warning message")  # 콘솔 + info.log
+logger.error("Error message")      # 콘솔 + info.log
+```
+
+### 커스텀 로거 생성
+
+```python
+from system_utils import setup_logger
+import logging
+
+# 콘솔 출력 없이 파일만 저장
+file_only_logger = setup_logger("FileOnly", console=False)
+
+# DEBUG 레벨부터 콘솔 출력
+debug_logger = setup_logger("Debug", level=logging.DEBUG)
+```
+
+### 다른 모듈에서 공유
+
+```python
+# module_a.py
+from system_utils import get_logger
+logger = get_logger()
+logger.info("Module A initialized")
+
+# module_b.py
+from system_utils import get_logger
+logger = get_logger()  # 같은 전역 로거 사용
+logger.info("Module B initialized")
+```

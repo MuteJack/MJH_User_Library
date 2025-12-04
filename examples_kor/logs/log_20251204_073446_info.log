@@ -1,0 +1,20 @@
+2025-12-04 07:34:46, [INFO], [logger.py], Log files created:
+2025-12-04 07:34:46, [INFO], [logger.py],   Main log: logs\log_20251204_073446_info.log
+2025-12-04 07:34:46, [INFO], [logger.py],   Debug log: logs\log_20251204_073446_debug.log
+2025-12-04 07:34:46, [INFO], [3804881514.py], Info message - 콘솔 + info.log
+2025-12-04 07:34:46, [WARN], [3804881514.py], Warning message - 콘솔 + info.log
+2025-12-04 07:34:46, [ERROR], [3804881514.py], Error message - 콘솔 + info.log
+2025-12-04 07:34:46, [WARN], [logger.py], FutureWarning in C:\Users\coldm\AppData\Local\Temp\ipykernel_46648\1874229810.py:3
+2025-12-04 07:34:46, [WARN], [logger.py], C:\Users\coldm\AppData\Local\Temp\ipykernel_46648\3096136593.py:2: UserWarning: This is a general warning
+  warnings.warn("This is a general warning", UserWarning)
+2025-12-04 07:34:46, [INFO], [361651509.py], Step 0: Result = 20.00
+2025-12-04 07:34:46, [INFO], [361651509.py], Step 1: Result = 30.00
+2025-12-04 07:34:46, [INFO], [361651509.py], Step 2: Result = 40.00
+2025-12-04 07:34:46, [INFO], [361651509.py], Step 3: Result = 50.00
+2025-12-04 07:34:46, [WARN], [361651509.py], Step 4: Result 60.00 exceeds threshold
+2025-12-04 07:34:46, [INFO], [1826650547.py], ModuleA initialized
+2025-12-04 07:34:46, [INFO], [1826650547.py], ModuleB initialized
+2025-12-04 07:34:46, [INFO], [1826650547.py], ModuleA processing...
+2025-12-04 07:34:46, [INFO], [1826650547.py], ModuleB processing...
+2025-12-04 07:34:47, [INFO], [2222522779.py], Division result: 5.0
+2025-12-04 07:34:47, [ERROR], [2222522779.py], Division by zero!
