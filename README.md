@@ -9,13 +9,14 @@ This library was developed for personal use in Python research projects.
 ```
 User_Library/
 ├── src/
-│   ├── mjh_math/          # Math utilities
-│   │   ├── basic_math.py  # Basic math functions (angle normalization, decimal handling)
-│   │   └── geometry.py    # Geometry functions (OBB, distance calculation)
-│   ├── print_format/      # Formatting utilities
-│   │   └── format_floats.py  # Number formatting (scientific notation, etc.)
-│   └── system_utils/      # System utilities
-│       └── logger.py      # Logging configuration
+│   └── user_library/          # Main package
+│       ├── mjh_math/          # Math utilities
+│       │   ├── basic_math.py  # Basic math functions (angle normalization, decimal handling)
+│       │   └── geometry.py    # Geometry functions (OBB, distance calculation)
+│       ├── print_format/      # Formatting utilities
+│       │   └── format_floats.py  # Number formatting (scientific notation, etc.)
+│       └── system_utils/      # System utilities
+│           └── logger.py      # Logging configuration
 ├── docs/                  # Documentation
 └── examples/              # Example notebooks
 ```
@@ -73,7 +74,11 @@ pip uninstall user-library
 ### 3.1. mjh_math - Math Utilities
 
 ```python
-from mjh_math import normalize_angle, get_obb_polygon, calculate_obb_distance
+from user_library.mjh_math import normalize_angle, get_obb_polygon, calculate_obb_distance
+
+# or using alias
+from user_library import mjh_math as mm
+mm.normalize_angle(450)
 
 # Angle normalization
 angle = normalize_angle(450)  # 90
@@ -88,7 +93,11 @@ dist = calculate_obb_distance(obb1, obb2)
 ### 3.2. print_format - Formatting Utilities
 
 ```python
-from print_format import format_list, format_float_to_sci, format_list_to_sci
+from user_library.print_format import format_list, format_float_to_sci, format_list_to_sci
+
+# or using alias
+from user_library import print_format as pf
+pf.format_list([1.234, 5.678])
 
 # List formatting
 format_list([1.234, 5.678])  # '1.23, 5.68'
@@ -103,7 +112,11 @@ format_list_to_sci([0.001234, 5678.9])  # '1.234e-03, 5.679e+03'
 ### 3.3. system_utils - System Utilities
 
 ```python
-from system_utils import get_logger
+from user_library.system_utils import get_logger
+
+# or using alias
+from user_library import system_utils as su
+su.get_logger()
 
 logger = get_logger()
 logger.info("Hello World")

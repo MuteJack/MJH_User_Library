@@ -2,10 +2,10 @@
 
 수학 유틸리티 패키지 - 기본 수학 함수와 기하학 함수 제공
 
-## 설치
+## Import
 
 ```python
-from mjh_math import (
+from user_library.mjh_math import (
     # basic_math
     normalize_angle,
     normalize_angle_half,
@@ -14,8 +14,12 @@ from mjh_math import (
     # geometry
     get_obb_polygon,
     centerpos_from_frontcenter,
-    calculate_polygon_distance,
+    calculate_obb_distance,
 )
+
+# or using alias
+from user_library import mjh_math as mm
+mm.normalize_angle(450)
 ```
 
 ---
@@ -162,34 +166,34 @@ Center: (100.0, 47.5)
 
 ---
 
-### calculate_polygon_distance(poly1, poly2)
+### calculate_obb_distance(obb1, obb2)
 
-폴리곤 간 최소 거리를 계산합니다.
-단일 폴리곤, 리스트, numpy 배열 입력을 지원합니다.
+OBB 간 최소 거리를 계산합니다.
+단일 OBB, 리스트, numpy 배열 입력을 지원합니다.
 
 **Args:**
-- `poly1` (Union[Polygon, List[Polygon], np.ndarray]): 단일 폴리곤 또는 폴리곤 배열
-- `poly2` (Union[Polygon, List[Polygon], np.ndarray]): 단일 폴리곤 또는 폴리곤 배열
+- `obb1` (Union[Polygon, List[Polygon], np.ndarray]): 단일 OBB 또는 OBB 배열
+- `obb2` (Union[Polygon, List[Polygon], np.ndarray]): 단일 OBB 또는 OBB 배열
 
 **Returns:**
-- `distance` (Union[float, np.ndarray]): 폴리곤 쌍 간 거리 (겹치면 0)
+- `distance` (Union[float, np.ndarray]): OBB 쌍 간 거리 (겹치면 0)
 
 **Example:**
 ```python
->>> # 1:1 - 단일 폴리곤 쌍
->>> poly1 = get_obb_polygon(0, 0, 2.0, 5.0, 0)
->>> poly2 = get_obb_polygon(10, 0, 2.0, 5.0, 0)
->>> dist = calculate_polygon_distance(poly1, poly2)
+>>> # 1:1 - 단일 OBB 쌍
+>>> obb1 = get_obb_polygon(0, 0, 2.0, 5.0, 0)
+>>> obb2 = get_obb_polygon(10, 0, 2.0, 5.0, 0)
+>>> dist = calculate_obb_distance(obb1, obb2)
 >>> print(f"Distance: {dist:.2f} m")
 Distance: 5.00 m
 
 >>> # N:N - 쌍별 거리
->>> polys1 = [get_obb_polygon(i, 0, 2, 5, 0) for i in range(3)]
->>> polys2 = [get_obb_polygon(i, 10, 2, 5, 0) for i in range(3)]
->>> dists = calculate_polygon_distance(polys1, polys2)
+>>> obbs1 = [get_obb_polygon(i, 0, 2, 5, 0) for i in range(3)]
+>>> obbs2 = [get_obb_polygon(i, 10, 2, 5, 0) for i in range(3)]
+>>> dists = calculate_obb_distance(obbs1, obbs2)
 
 >>> # 1:N - 하나 대 여러 개 (브로드캐스트)
 >>> ego = get_obb_polygon(0, 0, 2, 5, 0)
 >>> others = [get_obb_polygon(i*10, 0, 2, 5, 0) for i in range(1, 5)]
->>> dists = calculate_polygon_distance(ego, others)
+>>> dists = calculate_obb_distance(ego, others)
 ```

@@ -9,13 +9,14 @@
 ```
 User_Library/
 ├── src/
-│   ├── mjh_math/          # 수학 유틸리티
-│   │   ├── basic_math.py  # 기본 수학 함수 (각도 정규화, 소수점 처리)
-│   │   └── geometry.py    # 기하학 함수 (OBB, 거리 계산)
-│   ├── print_format/      # 포맷팅 유틸리티
-│   │   └── format_floats.py  # 숫자 포맷팅 (과학 표기법 등)
-│   └── system_utils/      # 시스템 유틸리티
-│       └── logger.py      # 로깅 설정
+│   └── user_library/          # 메인 패키지
+│       ├── mjh_math/          # 수학 유틸리티
+│       │   ├── basic_math.py  # 기본 수학 함수 (각도 정규화, 소수점 처리)
+│       │   └── geometry.py    # 기하학 함수 (OBB, 거리 계산)
+│       ├── print_format/      # 포맷팅 유틸리티
+│       │   └── format_floats.py  # 숫자 포맷팅 (과학 표기법 등)
+│       └── system_utils/      # 시스템 유틸리티
+│           └── logger.py      # 로깅 설정
 ├── docs/                  # 문서
 └── examples/              # 예제 노트북
 ```
@@ -72,7 +73,11 @@ pip uninstall user-library
 ### 3.1. mjh_math - 수학 유틸리티
 
 ```python
-from mjh_math import normalize_angle, get_obb_polygon, calculate_obb_distance
+from user_library.mjh_math import normalize_angle, get_obb_polygon, calculate_obb_distance
+
+# 또는 alias 사용
+from user_library import mjh_math as mm
+mm.normalize_angle(450)
 
 # 각도 정규화
 angle = normalize_angle(450)  # 90
@@ -87,7 +92,11 @@ dist = calculate_obb_distance(obb1, obb2)
 ### 3.2. print_format - 포맷팅 유틸리티
 
 ```python
-from print_format import format_list, format_float_to_sci, format_list_to_sci
+from user_library.print_format import format_list, format_float_to_sci, format_list_to_sci
+
+# 또는 alias 사용
+from user_library import print_format as pf
+pf.format_list([1.234, 5.678])
 
 # 리스트 포맷팅
 format_list([1.234, 5.678])  # '1.23, 5.68'
@@ -102,7 +111,11 @@ format_list_to_sci([0.001234, 5678.9])  # '1.234e-03, 5.679e+03'
 ### 3.3. system_utils - 시스템 관련 유틸리티
 
 ```python
-from system_utils import get_logger
+from user_library.system_utils import get_logger
+
+# 또는 alias 사용
+from user_library import system_utils as su
+su.get_logger()
 
 logger = get_logger()
 logger.info("Hello World")

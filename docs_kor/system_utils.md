@@ -2,10 +2,14 @@
 
 시스템 유틸리티 - 로깅 설정 및 관리
 
-## 설치
+## Import
 
 ```python
-from system_utils import get_logger, setup_logger
+from user_library.system_utils import get_logger, setup_logger
+
+# 또는 alias 사용
+from user_library import system_utils as su
+su.get_logger()
 ```
 
 ---
@@ -39,7 +43,7 @@ from system_utils import get_logger, setup_logger
 
 **Example:**
 ```python
->>> from system_utils import get_logger
+>>> from user_library.system_utils import get_logger
 >>> logger = get_logger()
 >>> logger.info("Application started")
 2024-01-01 12:00:00, [INFO], [my_script.py], Application started
@@ -63,7 +67,7 @@ from system_utils import get_logger, setup_logger
 
 **Example:**
 ```python
->>> from system_utils import setup_logger
+>>> from user_library.system_utils import setup_logger
 >>> logger = setup_logger("MyApp", log_dir="my_logs")
 ```
 
@@ -111,7 +115,7 @@ warnings.warn("This feature will be deprecated", FutureWarning)
 ### 기본 사용
 
 ```python
-from system_utils import get_logger
+from user_library.system_utils import get_logger
 
 logger = get_logger()
 
@@ -124,7 +128,7 @@ logger.error("Error message")      # 콘솔 + info.log
 ### 커스텀 로거 생성
 
 ```python
-from system_utils import setup_logger
+from user_library.system_utils import setup_logger
 import logging
 
 # 콘솔 출력 없이 파일만 저장
@@ -138,12 +142,12 @@ debug_logger = setup_logger("Debug", level=logging.DEBUG)
 
 ```python
 # module_a.py
-from system_utils import get_logger
+from user_library.system_utils import get_logger
 logger = get_logger()
 logger.info("Module A initialized")
 
 # module_b.py
-from system_utils import get_logger
+from user_library.system_utils import get_logger
 logger = get_logger()  # 같은 전역 로거 사용
 logger.info("Module B initialized")
 ```

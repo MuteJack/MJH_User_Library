@@ -2,15 +2,19 @@
 
 숫자 포맷팅 유틸리티 - 리스트, 딕셔너리, 과학 표기법 포맷팅
 
-## 설치
+## Import
 
 ```python
-from print_format import (
+from user_library.print_format import (
     format_list,
     format_dict,
     format_float_to_sci,
     format_list_to_sci,
 )
+
+# 또는 alias 사용
+from user_library import print_format as pf
+pf.format_list([1.234, 5.678])
 ```
 
 ---
@@ -133,7 +137,7 @@ None
 ### 로깅에 활용
 
 ```python
-from print_format import format_list_to_sci
+from user_library.print_format import format_list_to_sci
 
 distances = [0.00123, 0.00456, 0.00789]
 print(f"Distances: {format_list_to_sci(distances)}")
@@ -143,7 +147,7 @@ print(f"Distances: {format_list_to_sci(distances)}")
 ### 시뮬레이션 결과 출력
 
 ```python
-from print_format import format_dict
+from user_library.print_format import format_dict
 
 results = {'position': 123.456, 'velocity': 45.678, 'acceleration': 1.234}
 print(format_dict(results, fmt=".1f"))

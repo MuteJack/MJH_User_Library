@@ -14,4 +14,4 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["mjh_math*", "print_format*", "system_utils*"]
+include = ["user_library*"]
