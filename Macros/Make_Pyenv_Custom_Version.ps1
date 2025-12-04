@@ -1,0 +1,1 @@
+Copy-Item -Recurse "$env:USERPROFILE\.pyenv\pyenv-win\versions\3.13.5" "$env:USERPROFILE\.pyenv\pyenv-win\versions\3.13.5-custom"
