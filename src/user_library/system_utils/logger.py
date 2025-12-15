@@ -10,6 +10,11 @@ from datetime import datetime
 
 
 """ Custom Log Level """
+# VERBOSE level: console output but not in info.log (for high-frequency iteration logs)
+# Level hierarchy: DEBUG(10) < VERBOSE(15) < FUTUREWARN(19) < INFO(20)
+VERBOSE_LEVEL = 15
+logging.addLevelName(VERBOSE_LEVEL, "VERBOSE")
+
 # Add custom log level for FutureWarning details
 FUTURE_WARNING_LEVEL = 19
 logging.addLevelName(FUTURE_WARNING_LEVEL, "FUTUREWARN")
@@ -49,14 +54,18 @@ class LevelFilter(logging.Filter):
 def setup_logger(name="GAIL", level=logging.INFO, log_dir="logs", console=True, file=True):
     """Setup logger with dual output: console and file.
 
-    Log Level Routing:
-    - Console: INFO (20) and above
-    - log_{timestamp}_info.log: INFO (20) and above
-    - log_{timestamp}_debug.log: Below INFO (< 20), typically DEBUG
+    Log Level Hierarchy:
+        DEBUG(10) < VERBOSE(15) < FUTUREWARN(19) < INFO(20) < WARN(30) < ERROR(40)
 
-    Custom levels are supported based on their numeric value:
-    - Level < 20 (e.g., TRACE=5, DEBUG=10, VERBOSE=15, FUTUREWARN=19) -> debug.log only
-    - Level >= 20 (e.g., INFO=20, WARNING=30, ERROR=40) -> info.log + console
+    Log Level Routing:
+        Level        | Console | info.log | debug.log
+        -------------|---------|----------|----------
+        DEBUG (10)   |    -    |    -     |    ✓
+        VERBOSE (15) |    ✓    |    -     |    ✓
+        INFO (20)+   |    ✓    |    ✓     |    -
+
+    VERBOSE is ideal for high-frequency per-iteration logs that need
+    real-time monitoring but would clutter info.log for post-analysis.
 
     Args:
         name (str): Logger name (default: "GAIL")
@@ -91,10 +100,10 @@ def setup_logger(name="GAIL", level=logging.INFO, log_dir="logs", console=True, 
 
 
     """ Console Handler """
-    # Console handler - INFO (20) and above
+    # Console handler - VERBOSE (15) and above (shows VERBOSE but not DEBUG)
     if console:
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(logging.INFO)
+        console_handler.setLevel(VERBOSE_LEVEL)
         console_handler.setFormatter(simple_formatter)
         logger.addHandler(console_handler)
 
@@ -166,27 +175,119 @@ def redirect_warnings_to_logger(logger_instance):
     warnings.showwarning = warning_handler
 
 
+""" Custom Logger Wrapper """
+class LoggerWrapper:
+    """Wrapper class that adds to_cli option to logging methods.
+
+    Provides same interface as logging.Logger but with optional to_cli parameter.
+    When to_cli=False, logs only go to file handlers (skips console).
+
+    Usage:
+        logger = get_logger()
+        logger.info("This goes to console and file")
+        logger.info("This goes to file only", to_cli=False)
+    """
+
+    # Log level name for file-only logging
+    FILE_ONLY_LEVEL = 19  # Just below INFO (20), goes to debug.log
+
+    def __init__(self, logger: logging.Logger):
+        self._logger = logger
+
+    def _log(self, level: int, msg: str, *args, to_cli: bool = True, **kwargs):
+        """Internal log method with to_cli support.
+
+        Args:
+            level: Log level (e.g., logging.INFO)
+            msg: Log message
+            to_cli: If False, log only to file (default: True)
+            *args, **kwargs: Passed to logger
+        """
+        if to_cli:
+            self._logger.log(level, msg, *args, **kwargs)
+        else:
+            # Log at FILE_ONLY_LEVEL to skip console (which filters >= INFO)
+            # But preserve original level name in message for file
+            level_name = logging.getLevelName(level)
+            self._logger.log(self.FILE_ONLY_LEVEL, f"[{level_name}] {msg}", *args, **kwargs)
+
+    def debug(self, msg: str, *args, **kwargs):
+        """Log DEBUG message. Never goes to console (DEBUG < VERBOSE)."""
+        self._logger.debug(msg, *args, **kwargs)
+
+    def verbose(self, msg: str, *args, to_cli: bool = True, **kwargs):
+        """Log VERBOSE message. For high-frequency iteration logs.
+
+        - Console: Yes (if to_cli=True)
+        - info.log: No (VERBOSE < INFO)
+        - debug.log: Yes
+
+        Use for per-iteration status that needs real-time monitoring
+        but would clutter info.log for post-analysis.
+        """
+        if to_cli:
+            self._logger.log(VERBOSE_LEVEL, msg, *args, **kwargs)
+        else:
+            # to_cli=False: only to debug.log (same behavior, VERBOSE already < INFO)
+            self._logger.log(VERBOSE_LEVEL, msg, *args, **kwargs)
+
+    def info(self, msg: str, *args, to_cli: bool = True, **kwargs):
+        """Log INFO message. Set to_cli=False to skip console output."""
+        self._log(logging.INFO, msg, *args, to_cli=to_cli, **kwargs)
+
+    def warning(self, msg: str, *args, to_cli: bool = True, **kwargs):
+        """Log WARNING message. Set to_cli=False to skip console output."""
+        self._log(logging.WARNING, msg, *args, to_cli=to_cli, **kwargs)
+
+    def error(self, msg: str, *args, to_cli: bool = True, **kwargs):
+        """Log ERROR message. Set to_cli=False to skip console output."""
+        self._log(logging.ERROR, msg, *args, to_cli=to_cli, **kwargs)
+
+    def critical(self, msg: str, *args, to_cli: bool = True, **kwargs):
+        """Log CRITICAL message. Set to_cli=False to skip console output."""
+        self._log(logging.CRITICAL, msg, *args, to_cli=to_cli, **kwargs)
+
+    def log(self, level: int, msg: str, *args, to_cli: bool = True, **kwargs):
+        """Log at specified level. Set to_cli=False to skip console output."""
+        self._log(level, msg, *args, to_cli=to_cli, **kwargs)
+
+    def exception(self, msg: str, *args, to_cli: bool = True, **kwargs):
+        """Log ERROR with exception info. Set to_cli=False to skip console output."""
+        kwargs['exc_info'] = kwargs.get('exc_info', True)
+        self._log(logging.ERROR, msg, *args, to_cli=to_cli, **kwargs)
+
+    # Delegate other attributes to underlying logger
+    def __getattr__(self, name):
+        return getattr(self._logger, name)
+
+
 """ Global Logger Instance """
 # Create global logger
-logger = setup_logger()
+_raw_logger = setup_logger()
+logger = LoggerWrapper(_raw_logger)
 
 # Redirect warnings to logger
-redirect_warnings_to_logger(logger)
+redirect_warnings_to_logger(_raw_logger)
 
 
 """ Logger Access Function """
-def get_logger(name=None, **kwargs):
-    """Get logger instance.
+def get_logger(name=None, **kwargs) -> LoggerWrapper:
+    """Get logger instance with to_cli support.
 
     Args:
         name (Optional[str]): Logger name (if None, returns global logger)
         **kwargs: Additional arguments for setup_logger
 
     Returns:
-        logger (logging.Logger): Logger instance
+        LoggerWrapper: Logger instance with to_cli option
+
+    Usage:
+        logger = get_logger()
+        logger.info("Normal log")              # Console + file
+        logger.info("File only", to_cli=False) # File only
     """
     if name:
-        return setup_logger(name, **kwargs)
+        return LoggerWrapper(setup_logger(name, **kwargs))
     return logger
 
 # EOS - End of Script

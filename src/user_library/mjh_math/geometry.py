@@ -87,6 +87,130 @@ def centerpos_from_frontcenter(front_x, front_y, length, angle_deg):
     return center_x, center_y
 
 
+def frontcenter_from_centerpos(center_x, center_y, length, angle_deg):
+    """Convert vehicle center position to front bumper center position.
+
+    Inverse of centerpos_from_frontcenter().
+    OBB calculation uses vehicle center, but SUMO uses front bumper center.
+
+    Args:
+        center_x (float): Vehicle center X position
+        center_y (float): Vehicle center Y position
+        length (float): Vehicle length
+        angle_deg (float): Rotation angle in degrees (0 = pointing right, counterclockwise positive)
+
+    Returns:
+        front_position (tuple): (front_x, front_y) - Front bumper center position
+
+    Example:
+        >>> # Vehicle center at (97.5, 50), length 5m, pointing right (0°)
+        >>> front_x, front_y = frontcenter_from_centerpos(97.5, 50, 5.0, 0)
+        >>> print(f"Front: ({front_x}, {front_y})")
+        Front: (100.0, 50)
+
+        >>> # Vehicle pointing up (90°)
+        >>> front_x, front_y = frontcenter_from_centerpos(100, 47.5, 5.0, 90)
+        >>> print(f"Front: ({front_x:.1f}, {front_y:.1f})")
+        Front: (100.0, 50.0)
+    """
+    # Calculate offset from center to front (half of vehicle length, in forward direction)
+    angle_rad = np.radians(angle_deg)
+
+    # Offset vector pointing from center to front (forward along vehicle axis)
+    offset_x = (length / 2.0) * np.cos(angle_rad)
+    offset_y = (length / 2.0) * np.sin(angle_rad)
+
+    # Front position = center position + offset
+    front_x = center_x + offset_x
+    front_y = center_y + offset_y
+
+    return front_x, front_y
+
+
+def filter_points_in_radius(origin, points, radius, margin=0.0):
+    """Filter points within a circular radius (fast pre-filter).
+
+    Uses squared distance comparison for speed (no sqrt).
+
+    Args:
+        origin (tuple): Origin point (x, y) or (x, y, ...)
+        points (dict): Dict of {key: (x, y, ...)} or {key: [x, y, ...]}
+        radius (float): Search radius in meters
+        margin (float): Additional margin to add to radius (default: 0)
+
+    Returns:
+        candidates (dict): Filtered dict {key: point} within radius + margin
+
+    Example:
+        >>> origin = (100, 50)
+        >>> points = {'a': (101, 51), 'b': (200, 50), 'c': (105, 55)}
+        >>> nearby = filter_points_in_radius(origin, points, radius=10.0)
+        >>> # Returns {'a': (101, 51), 'c': (105, 55)}
+    """
+    ox, oy = origin[0], origin[1]
+    search_radius_sq = (radius + margin) ** 2
+
+    candidates = {}
+    for key, point in points.items():
+        dx = point[0] - ox
+        dy = point[1] - oy
+        if dx*dx + dy*dy <= search_radius_sq:
+            candidates[key] = point
+
+    return candidates
+
+
+def calculate_polygon_distance(poly1, poly2):
+    """Calculate minimum distance between two Shapely polygons.
+
+    Args:
+        poly1 (Polygon): First Shapely polygon
+        poly2 (Polygon): Second Shapely polygon
+
+    Returns:
+        distance (float): Minimum distance (0 if overlapping)
+    """
+    return poly1.distance(poly2)
+
+
+def calculate_polygon_distances(reference_polygon, target_polygons):
+    """Calculate distances from reference polygon to multiple targets.
+
+    Args:
+        reference_polygon (Polygon): Reference Shapely polygon
+        target_polygons (dict): Dict of {key: Polygon}
+
+    Returns:
+        distances (list): List of (key, distance) sorted by distance
+
+    Example:
+        >>> ref = get_obb_polygon(0, 0, 2, 5, 0)
+        >>> targets = {'a': get_obb_polygon(10, 0, 2, 5, 0), 'b': get_obb_polygon(5, 0, 2, 5, 0)}
+        >>> dists = calculate_polygon_distances(ref, targets)
+        >>> # Returns [('b', 0.0), ('a', 5.0)]
+    """
+    results = []
+    for key, poly in target_polygons.items():
+        dist = reference_polygon.distance(poly)
+        results.append((key, dist))
+
+    results.sort(key=lambda x: x[1])
+    return results
+
+
+def get_obb_bounding_margin(length, width):
+    """Calculate diagonal margin for OBB worst-case rotation.
+
+    Args:
+        length (float): OBB length
+        width (float): OBB width
+
+    Returns:
+        margin (float): Diagonal half-length (worst-case bounding radius)
+    """
+    return np.sqrt(length**2 + width**2) / 2
+
+
 def calculate_obb_distance(obb1, obb2):
     """Calculate minimum distance between OBB polygon(s).
 
