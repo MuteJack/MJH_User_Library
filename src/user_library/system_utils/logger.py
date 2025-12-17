@@ -23,6 +23,9 @@ logging.addLevelName(FUTURE_WARNING_LEVEL, "FUTUREWARN")
 # Shorten WARNING to WARN for compact display
 logging.addLevelName(logging.WARNING, "WARN")
 
+# Global flag to prevent duplicate log file location output
+_log_files_printed = False
+
 
 """ Log Filter """
 class LevelFilter(logging.Filter):
@@ -216,7 +219,9 @@ class LoggerWrapper:
 
     def print_log_files(self):
         """Print log file locations (for use at script end)."""
-        if self._log_files:
+        global _log_files_printed
+        if self._log_files and not _log_files_printed:
+            _log_files_printed = True
             self._logger.info("Log files:")
             for name, path in self._log_files.items():
                 self._logger.info(f"  - {name}: {path}")
@@ -302,8 +307,11 @@ logger = LoggerWrapper(_raw_logger, _log_files)
 # Redirect warnings to logger
 redirect_warnings_to_logger(_raw_logger)
 
-# Register atexit handler to print log file locations on program exit
-atexit.register(logger.print_log_files)
+# Register atexit handler only in main process (not in child processes)
+# Child processes from multiprocessing have different parent process
+import multiprocessing
+if multiprocessing.current_process().name == 'MainProcess':
+    atexit.register(logger.print_log_files)
 
 
 """ Logger Access Function """
