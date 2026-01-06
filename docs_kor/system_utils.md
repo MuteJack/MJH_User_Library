@@ -17,16 +17,34 @@ su.get_logger()
 ## 개요
 
 듀얼 출력(콘솔 + 파일)을 지원하는 로거를 제공합니다.
+콘솔 출력에는 로그 레벨별 색상이 자동 적용됩니다.
 
 ### 로그 레벨 라우팅
 
-| 레벨 | 숫자 | 콘솔 | info.log | debug.log |
-|------|------|------|----------|-----------|
-| DEBUG | 10 | ❌ | ❌ | ✅ |
-| FUTUREWARN | 19 | ❌ | ❌ | ✅ |
-| INFO | 20 | ✅ | ✅ | ❌ |
-| WARNING | 30 | ✅ | ✅ | ❌ |
-| ERROR | 40 | ✅ | ✅ | ❌ |
+| 레벨 | 숫자 | 콘솔 | info.log | verbose.log | debug.log | 색상 |
+|------|------|------|----------|-------------|-----------|------|
+| DEBUG | 10 | ❌ | ❌ | ❌ | ✅ | 회색 |
+| VERBOSE | 15 | ✅ | ❌ | ✅ | ❌ | 청록색 |
+| FUTUREWARN | 19 | ❌ | ❌ | ❌ | ✅ | 노란색 |
+| INFO | 20 | ✅ | ✅ | ❌ | ❌ | 녹색 |
+| WARNING | 30 | ✅ | ✅ | ❌ | ❌ | 노란색 |
+| ERROR | 40 | ✅ | ✅ | ❌ | ❌ | 빨간색 |
+| CRITICAL | 50 | ✅ | ✅ | ❌ | ❌ | 굵은 빨간색 |
+
+### 로그 레벨 상수
+
+```python
+logger = get_logger()
+
+logger.DEBUG     # 10
+logger.VERBOSE   # 15
+logger.FUTUREWARN # 19
+logger.INFO      # 20
+logger.WARNING   # 30
+logger.WARN      # 30 (별칭)
+logger.ERROR     # 40
+logger.CRITICAL  # 50
+```
 
 ---
 
@@ -77,8 +95,9 @@ su.get_logger()
 
 ```
 logs/
-├── log_20240101_120000_info.log   # INFO 이상 로그
-└── log_20240101_120000_debug.log  # DEBUG ~ FUTUREWARN 로그
+├── log_20240101_120000_info.log    # INFO 이상 로그
+├── log_20240101_120000_verbose.log # VERBOSE 레벨만
+└── log_20240101_120000_debug.log   # DEBUG 레벨만
 ```
 
 ### 로그 포맷
@@ -120,9 +139,23 @@ from user_library.system_utils import get_logger
 logger = get_logger()
 
 logger.debug("Debug message")      # debug.log에만 저장
-logger.info("Info message")        # 콘솔 + info.log
-logger.warning("Warning message")  # 콘솔 + info.log
-logger.error("Error message")      # 콘솔 + info.log
+logger.verbose("Verbose message")  # 콘솔(청록색) + verbose.log
+logger.info("Info message")        # 콘솔(녹색) + info.log
+logger.warning("Warning message")  # 콘솔(노란색) + info.log
+logger.error("Error message")      # 콘솔(빨간색) + info.log
+```
+
+### 로그 레벨 상수 활용
+
+```python
+logger = get_logger()
+
+# 레벨 상수로 직접 로깅
+logger.log(logger.VERBOSE, "Custom verbose message")
+
+# 레벨 비교
+if current_level >= logger.WARNING:
+    print("높은 우선순위 로그")
 ```
 
 ### 커스텀 로거 생성

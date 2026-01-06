@@ -4,10 +4,15 @@
 # Standard library imports
 import atexit
 import logging
+import multiprocessing
 import sys
 import os
 import warnings
 from datetime import datetime
+
+
+# Check if running in main process (for file handler creation)
+_is_main_process = multiprocessing.current_process().name == 'MainProcess'
 
 
 """ Custom Log Level """
@@ -54,6 +59,47 @@ class LevelFilter(logging.Filter):
         return self.min_level <= record.levelno <= self.max_level
 
 
+""" Color Formatter for Console """
+class ColorFormatter(logging.Formatter):
+    """Formatter that adds ANSI color codes to console output.
+
+    Colors are applied based on log level:
+    - DEBUG: Dim gray
+    - VERBOSE: Cyan
+    - INFO: Green
+    - WARNING: Yellow
+    - ERROR: Red
+    - CRITICAL: Bold Red
+    """
+
+    # ANSI color codes
+    COLORS = {
+        logging.DEBUG: '\033[90m',      # Dim gray
+        VERBOSE_LEVEL: '\033[96m',      # Cyan
+        FUTURE_WARNING_LEVEL: '\033[93m',  # Yellow (same as warning)
+        logging.INFO: '\033[92m',       # Green
+        logging.WARNING: '\033[93m',    # Yellow
+        logging.ERROR: '\033[91m',      # Red
+        logging.CRITICAL: '\033[1;91m', # Bold Red
+    }
+    RESET = '\033[0m'
+
+    def __init__(self, fmt=None, datefmt=None, style='%', use_color=True):
+        super().__init__(fmt, datefmt, style)
+        self.use_color = use_color
+
+    def format(self, record):
+        # Get the original formatted message
+        message = super().format(record)
+
+        if self.use_color:
+            color = self.COLORS.get(record.levelno, '')
+            if color:
+                message = f"{color}{message}{self.RESET}"
+
+        return message
+
+
 """ Logger Setup Function """
 def setup_logger(name="GAIL", level=logging.INFO, log_dir="logs", console=True, file=True):
     """Setup logger with console and file outputs.
@@ -94,15 +140,13 @@ def setup_logger(name="GAIL", level=logging.INFO, log_dir="logs", console=True, 
     # Format: {time}; [{Log Level}]; [{python file name (fixed width)}]; {Message}
     # Using semicolon as delimiter for easier CSV parsing (comma is common in messages)
     # Filename is left-aligned with 24 char width for consistent alignment after semicolon
-    detailed_formatter = logging.Formatter(
-        fmt='%(asctime)s; [%(levelname)s]; [%(filename)-24s]; %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
+    log_format = '%(asctime)s; [%(levelname)s]; [%(filename)-24s]; %(message)s'
+    log_datefmt = '%Y-%m-%d %H:%M:%S'
 
-    simple_formatter = logging.Formatter(
-        fmt='%(asctime)s; [%(levelname)s]; [%(filename)-24s]; %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
+    detailed_formatter = logging.Formatter(fmt=log_format, datefmt=log_datefmt)
+
+    # Color formatter for console output (colors based on log level)
+    console_formatter = ColorFormatter(fmt=log_format, datefmt=log_datefmt, use_color=True)
 
 
     """ Console Handler """
@@ -110,13 +154,14 @@ def setup_logger(name="GAIL", level=logging.INFO, log_dir="logs", console=True, 
     if console:
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(VERBOSE_LEVEL)
-        console_handler.setFormatter(simple_formatter)
+        console_handler.setFormatter(console_formatter)  # Use color formatter
         logger.addHandler(console_handler)
 
 
     """ File Handlers """
+    # Only create file handlers in main process (child processes would create duplicate files)
     log_files = {}
-    if file:
+    if file and _is_main_process:
         # Create log directory if not exists
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
@@ -206,9 +251,27 @@ class LoggerWrapper:
         logger.info("This goes to console and file")
         logger.info("This goes to file only", to_cli=False)
 
+        # Access log level constants
+        logger.DEBUG     # 10
+        logger.VERBOSE   # 15
+        logger.INFO      # 20
+        logger.WARNING   # 30
+        logger.ERROR     # 40
+        logger.CRITICAL  # 50
+
         # At script end
         logger.print_log_files()
     """
+
+    # Log level constants (for external access)
+    DEBUG = logging.DEBUG           # 10
+    VERBOSE = VERBOSE_LEVEL         # 15
+    FUTUREWARN = FUTURE_WARNING_LEVEL  # 19
+    INFO = logging.INFO             # 20
+    WARNING = logging.WARNING       # 30
+    WARN = logging.WARNING          # 30 (alias)
+    ERROR = logging.ERROR           # 40
+    CRITICAL = logging.CRITICAL     # 50
 
     # Log level name for file-only logging
     FILE_ONLY_LEVEL = 19  # Just below INFO (20), goes to debug.log
@@ -308,9 +371,7 @@ logger = LoggerWrapper(_raw_logger, _log_files)
 redirect_warnings_to_logger(_raw_logger)
 
 # Register atexit handler only in main process (not in child processes)
-# Child processes from multiprocessing have different parent process
-import multiprocessing
-if multiprocessing.current_process().name == 'MainProcess':
+if _is_main_process:
     atexit.register(logger.print_log_files)
 
 
