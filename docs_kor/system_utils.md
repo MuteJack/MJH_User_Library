@@ -57,14 +57,14 @@ logger.CRITICAL  # 50
 - `**kwargs`: setup_logger에 전달할 추가 인자
 
 **Returns:**
-- `logger` (logging.Logger): 로거 인스턴스
+- `logger` (LoggerWrapper): to_cli 지원 로거 인스턴스
 
 **Example:**
 ```python
 >>> from user_library.system_utils import get_logger
 >>> logger = get_logger()
 >>> logger.info("Application started")
-2024-01-01 12:00:00, [INFO], [my_script.py], Application started
+2024-01-01 12:00:00; [INFO]; [my_script.py           ]; Application started
 ```
 
 ---
@@ -81,12 +81,12 @@ logger.CRITICAL  # 50
 - `file` (bool): 파일 출력 활성화 (default: True)
 
 **Returns:**
-- `logger` (logging.Logger): 로거 인스턴스
+- `tuple`: (logger, log_files) - 로거 인스턴스와 로그 파일 경로 딕셔너리
 
 **Example:**
 ```python
 >>> from user_library.system_utils import setup_logger
->>> logger = setup_logger("MyApp", log_dir="my_logs")
+>>> logger, log_files = setup_logger("MyApp", log_dir="my_logs")
 ```
 
 ---
@@ -103,13 +103,91 @@ logs/
 ### 로그 포맷
 
 ```
-{timestamp}, [{level}], [{filename}], {message}
+{timestamp}; [{level}]; [{filename}]; {message}
 ```
 
 예시:
 ```
-2024-01-01 12:00:00, [INFO], [simulation.py], Simulation started
-2024-01-01 12:00:01, [WARN], [vehicle.py], Vehicle speed exceeds limit
+2024-01-01 12:00:00; [INFO]; [simulation.py          ]; Simulation started
+2024-01-01 12:00:01; [WARN]; [vehicle.py             ]; Vehicle speed exceeds limit
+```
+
+---
+
+## to_cli 파라미터
+
+모든 로깅 메서드는 콘솔 출력을 제어하는 `to_cli` 파라미터를 지원합니다.
+
+**Example:**
+```python
+logger = get_logger()
+
+# 일반 로깅 (콘솔 + 파일)
+logger.info("This goes to console and file")
+
+# 파일만 저장 (콘솔 출력 생략)
+logger.info("This goes to file only", to_cli=False)
+logger.warning("File-only warning", to_cli=False)
+logger.error("File-only error", to_cli=False)
+```
+
+---
+
+## exc_info 파라미터
+
+로그 출력에 traceback 정보를 포함합니다.
+
+**Example:**
+```python
+logger = get_logger()
+
+try:
+    result = 1 / 0
+except ZeroDivisionError:
+    # 전체 traceback과 함께 에러 로깅
+    logger.error("Division failed", exc_info=True)
+
+    # 또는 exception() 메서드 사용 (exc_info=True가 기본값)
+    logger.exception("Division failed")
+```
+
+---
+
+## verbose() 메서드
+
+VERBOSE 레벨은 ", "로 연결되는 여러 인자를 지원합니다.
+
+**Example:**
+```python
+logger = get_logger()
+
+# 단일 인자
+logger.verbose("Processing step 1")
+
+# 여러 인자 (", "로 연결)
+logger.verbose("Step", "Position: 10.5", "Speed: 25.3")
+# 출력: Step, Position: 10.5, Speed: 25.3
+```
+
+---
+
+## print_log_files()
+
+로그 파일 위치를 출력합니다. 스크립트 종료 시 자동 호출되지만, 수동으로도 호출 가능합니다.
+
+**Example:**
+```python
+logger = get_logger()
+
+# ... 작업 수행 ...
+
+# 로그 파일 위치 출력
+logger.print_log_files()
+# 출력:
+# Log files:
+#   - info: logs/log_20240101_120000_info.log
+#   - verbose: logs/log_20240101_120000_verbose.log
+#   - debug: logs/log_20240101_120000_debug.log
 ```
 
 ---
@@ -125,6 +203,23 @@ import warnings
 warnings.warn("This feature will be deprecated", FutureWarning)
 # 콘솔: FutureWarning in my_script.py:10
 # debug.log: 전체 스택 트레이스
+```
+
+---
+
+## 전역 예외 훅
+
+처리되지 않은 예외가 `sys.excepthook`을 통해 자동으로 로깅됩니다.
+KeyboardInterrupt는 조용히 무시됩니다 (traceback 없음).
+
+```python
+# get_logger() import 시 자동 설정됨
+from user_library.system_utils import get_logger
+logger = get_logger()
+
+# 처리되지 않은 모든 예외는 traceback과 함께 ERROR로 로깅됨
+raise ValueError("Something went wrong")
+# 로깅됨: ERROR - Unhandled exception (전체 traceback 포함)
 ```
 
 ---
@@ -165,10 +260,10 @@ from user_library.system_utils import setup_logger
 import logging
 
 # 콘솔 출력 없이 파일만 저장
-file_only_logger = setup_logger("FileOnly", console=False)
+file_logger, _ = setup_logger("FileOnly", console=False)
 
 # DEBUG 레벨부터 콘솔 출력
-debug_logger = setup_logger("Debug", level=logging.DEBUG)
+debug_logger, _ = setup_logger("Debug", level=logging.DEBUG)
 ```
 
 ### 다른 모듈에서 공유
@@ -183,4 +278,16 @@ logger.info("Module A initialized")
 from user_library.system_utils import get_logger
 logger = get_logger()  # 같은 전역 로거 사용
 logger.info("Module B initialized")
+```
+
+### Traceback과 함께 에러 처리
+
+```python
+logger = get_logger()
+
+try:
+    risky_operation()
+except Exception as e:
+    # traceback과 함께 로깅
+    logger.error(f"Operation failed: {e}", exc_info=True)
 ```

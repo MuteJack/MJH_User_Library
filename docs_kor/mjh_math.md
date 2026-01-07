@@ -14,7 +14,12 @@ from user_library.mjh_math import (
     # geometry
     get_obb_polygon,
     centerpos_from_frontcenter,
+    frontcenter_from_centerpos,
     calculate_obb_distance,
+    filter_points_in_radius,
+    calculate_polygon_distance,
+    calculate_polygon_distances,
+    get_obb_bounding_margin,
 )
 
 # 또는 alias 사용
@@ -166,6 +171,126 @@ Center: (100.0, 47.5)
 
 ---
 
+### frontcenter_from_centerpos(center_x, center_y, length, angle_deg)
+
+차량 중심 좌표를 전방 범퍼 중심 좌표로 변환합니다.
+centerpos_from_frontcenter()의 역변환입니다.
+
+**Args:**
+- `center_x` (float): 차량 중심 X 좌표
+- `center_y` (float): 차량 중심 Y 좌표
+- `length` (float): 차량 길이
+- `angle_deg` (float): 회전 각도 (degrees)
+
+**Returns:**
+- `front_position` (tuple): (front_x, front_y) - 전방 범퍼 중심 좌표
+
+**Example:**
+```python
+>>> # 오른쪽 방향 (0°) 차량
+>>> front_x, front_y = frontcenter_from_centerpos(97.5, 50, 5.0, 0)
+>>> print(f"Front: ({front_x}, {front_y})")
+Front: (100.0, 50)
+
+>>> # 위쪽 방향 (90°) 차량
+>>> front_x, front_y = frontcenter_from_centerpos(100, 47.5, 5.0, 90)
+>>> print(f"Front: ({front_x:.1f}, {front_y:.1f})")
+Front: (100.0, 50.0)
+```
+
+---
+
+### filter_points_in_radius(origin, points, radius, margin)
+
+원형 반경 내의 포인트를 필터링합니다 (빠른 pre-filter).
+속도를 위해 제곱 거리 비교를 사용합니다 (sqrt 없음).
+
+**Args:**
+- `origin` (tuple): 원점 (x, y) 또는 (x, y, ...)
+- `points` (dict): {key: (x, y, ...)} 또는 {key: [x, y, ...]} 형태의 딕셔너리
+- `radius` (float): 검색 반경 (미터)
+- `margin` (float): 반경에 추가할 마진 (default: 0)
+
+**Returns:**
+- `candidates` (dict): radius + margin 내의 필터링된 딕셔너리 {key: point}
+
+**Example:**
+```python
+>>> origin = (100, 50)
+>>> points = {'a': (101, 51), 'b': (200, 50), 'c': (105, 55)}
+>>> nearby = filter_points_in_radius(origin, points, radius=10.0)
+>>> # 반환값: {'a': (101, 51), 'c': (105, 55)}
+```
+
+---
+
+### calculate_polygon_distance(poly1, poly2)
+
+두 Shapely polygon 사이의 최소 거리를 계산합니다.
+
+**Args:**
+- `poly1` (Polygon): 첫 번째 Shapely polygon
+- `poly2` (Polygon): 두 번째 Shapely polygon
+
+**Returns:**
+- `distance` (float): 최소 거리 (겹치면 0)
+
+**Example:**
+```python
+>>> poly1 = get_obb_polygon(0, 0, 2, 5, 0)
+>>> poly2 = get_obb_polygon(10, 0, 2, 5, 0)
+>>> dist = calculate_polygon_distance(poly1, poly2)
+>>> print(f"거리: {dist:.2f} m")
+거리: 5.00 m
+```
+
+---
+
+### calculate_polygon_distances(reference_polygon, target_polygons)
+
+참조 polygon에서 여러 대상까지의 거리를 계산합니다.
+거리순으로 정렬된 결과를 반환합니다.
+
+**Args:**
+- `reference_polygon` (Polygon): 참조 Shapely polygon
+- `target_polygons` (dict): {key: Polygon} 형태의 딕셔너리
+
+**Returns:**
+- `distances` (list): 거리순으로 정렬된 (key, distance) 리스트
+
+**Example:**
+```python
+>>> ref = get_obb_polygon(0, 0, 2, 5, 0)
+>>> targets = {
+...     'a': get_obb_polygon(10, 0, 2, 5, 0),
+...     'b': get_obb_polygon(5, 0, 2, 5, 0)
+... }
+>>> dists = calculate_polygon_distances(ref, targets)
+>>> # 반환값: [('b', 0.0), ('a', 5.0)]
+```
+
+---
+
+### get_obb_bounding_margin(length, width)
+
+OBB의 최악 회전 케이스를 위한 대각선 마진을 계산합니다.
+
+**Args:**
+- `length` (float): OBB 길이
+- `width` (float): OBB 너비
+
+**Returns:**
+- `margin` (float): 대각선 반길이 (최악 케이스 바운딩 반경)
+
+**Example:**
+```python
+>>> margin = get_obb_bounding_margin(5.0, 2.0)
+>>> print(f"마진: {margin:.2f} m")
+마진: 2.69 m
+```
+
+---
+
 ### calculate_obb_distance(obb1, obb2)
 
 OBB 간 최소 거리를 계산합니다.
@@ -184,8 +309,8 @@ OBB 간 최소 거리를 계산합니다.
 >>> obb1 = get_obb_polygon(0, 0, 2.0, 5.0, 0)
 >>> obb2 = get_obb_polygon(10, 0, 2.0, 5.0, 0)
 >>> dist = calculate_obb_distance(obb1, obb2)
->>> print(f"Distance: {dist:.2f} m")
-Distance: 5.00 m
+>>> print(f"거리: {dist:.2f} m")
+거리: 5.00 m
 
 >>> # N:N - 쌍별 거리
 >>> obbs1 = [get_obb_polygon(i, 0, 2, 5, 0) for i in range(3)]

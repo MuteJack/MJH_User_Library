@@ -362,6 +362,26 @@ class LoggerWrapper:
         return getattr(self._logger, name)
 
 
+""" Exception Hook for Unhandled Exceptions """
+def setup_excepthook(logger_instance: logging.Logger):
+    """Setup sys.excepthook to log unhandled exceptions via logger.
+
+    This ensures all unhandled exceptions (including in subprocesses)
+    are logged through the logger instead of default stderr output.
+
+    Args:
+        logger_instance: Logger to use for exception logging
+    """
+    def _excepthook(exc_type, exc_value, exc_tb):
+        """Custom excepthook to log unhandled exceptions."""
+        if issubclass(exc_type, KeyboardInterrupt):
+            # Silent exit on KeyboardInterrupt (no traceback)
+            return
+        logger_instance.error("Unhandled exception", exc_info=(exc_type, exc_value, exc_tb))
+
+    sys.excepthook = _excepthook
+
+
 """ Global Logger Instance """
 # Create global logger
 _raw_logger, _log_files = setup_logger()
@@ -369,6 +389,9 @@ logger = LoggerWrapper(_raw_logger, _log_files)
 
 # Redirect warnings to logger
 redirect_warnings_to_logger(_raw_logger)
+
+# Setup global excepthook (works in main process and subprocesses that import this module)
+setup_excepthook(_raw_logger)
 
 # Register atexit handler only in main process (not in child processes)
 if _is_main_process:

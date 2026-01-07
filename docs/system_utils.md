@@ -1,6 +1,6 @@
-# system_utils 모듈
+# system_utils Module
 
-시스템 유틸리티 - 로깅 설정 및 관리
+System utilities - Logging configuration and management
 
 ## Import
 
@@ -14,24 +14,24 @@ su.get_logger()
 
 ---
 
-## 개요
+## Overview
 
-듀얼 출력(콘솔 + 파일)을 지원하는 로거를 제공합니다.
-콘솔 출력에는 로그 레벨별 색상이 자동 적용됩니다.
+Provides a logger with dual output (console + file).
+Console output automatically applies colors based on log level.
 
-### 로그 레벨 라우팅
+### Log Level Routing
 
-| 레벨 | 숫자 | 콘솔 | info.log | verbose.log | debug.log | 색상 |
-|------|------|------|----------|-------------|-----------|------|
-| DEBUG | 10 | ❌ | ❌ | ❌ | ✅ | 회색 |
-| VERBOSE | 15 | ✅ | ❌ | ✅ | ❌ | 청록색 |
-| FUTUREWARN | 19 | ❌ | ❌ | ❌ | ✅ | 노란색 |
-| INFO | 20 | ✅ | ✅ | ❌ | ❌ | 녹색 |
-| WARNING | 30 | ✅ | ✅ | ❌ | ❌ | 노란색 |
-| ERROR | 40 | ✅ | ✅ | ❌ | ❌ | 빨간색 |
-| CRITICAL | 50 | ✅ | ✅ | ❌ | ❌ | 굵은 빨간색 |
+| Level | Number | Console | info.log | verbose.log | debug.log | Color |
+|-------|--------|---------|----------|-------------|-----------|-------|
+| DEBUG | 10 | No | No | No | Yes | Gray |
+| VERBOSE | 15 | Yes | No | Yes | No | Cyan |
+| FUTUREWARN | 19 | No | No | No | Yes | Yellow |
+| INFO | 20 | Yes | Yes | No | No | Green |
+| WARNING | 30 | Yes | Yes | No | No | Yellow |
+| ERROR | 40 | Yes | Yes | No | No | Red |
+| CRITICAL | 50 | Yes | Yes | No | No | Bold Red |
 
-### 로그 레벨 상수
+### Log Level Constants
 
 ```python
 logger = get_logger()
@@ -50,128 +50,223 @@ logger.CRITICAL  # 50
 
 ## get_logger(name, **kwargs)
 
-로거 인스턴스를 가져옵니다.
+Get a logger instance.
 
 **Args:**
-- `name` (Optional[str]): 로거 이름 (None이면 전역 로거 반환)
-- `**kwargs`: setup_logger에 전달할 추가 인자
+- `name` (Optional[str]): Logger name (if None, returns global logger)
+- `**kwargs`: Additional arguments passed to setup_logger
 
 **Returns:**
-- `logger` (logging.Logger): 로거 인스턴스
+- `logger` (LoggerWrapper): Logger instance with to_cli support
 
 **Example:**
 ```python
 >>> from user_library.system_utils import get_logger
 >>> logger = get_logger()
 >>> logger.info("Application started")
-2024-01-01 12:00:00, [INFO], [my_script.py], Application started
+2024-01-01 12:00:00; [INFO]; [my_script.py           ]; Application started
 ```
 
 ---
 
 ## setup_logger(name, level, log_dir, console, file)
 
-듀얼 출력(콘솔 + 파일)을 가진 로거를 설정합니다.
+Setup a logger with dual output (console + file).
 
 **Args:**
-- `name` (str): 로거 이름 (default: "GAIL")
-- `level` (int): 콘솔 로깅 레벨 (default: INFO)
-- `log_dir` (str): 로그 파일 저장 디렉토리 (default: "logs")
-- `console` (bool): 콘솔 출력 활성화 (default: True)
-- `file` (bool): 파일 출력 활성화 (default: True)
+- `name` (str): Logger name (default: "GAIL")
+- `level` (int): Console logging level (default: INFO)
+- `log_dir` (str): Directory to save log files (default: "logs")
+- `console` (bool): Enable console output (default: True)
+- `file` (bool): Enable file output (default: True)
 
 **Returns:**
-- `logger` (logging.Logger): 로거 인스턴스
+- `tuple`: (logger, log_files) - Logger instance and dict of log file paths
 
 **Example:**
 ```python
 >>> from user_library.system_utils import setup_logger
->>> logger = setup_logger("MyApp", log_dir="my_logs")
+>>> logger, log_files = setup_logger("MyApp", log_dir="my_logs")
 ```
 
 ---
 
-## 로그 파일 구조
+## Log File Structure
 
 ```
 logs/
-├── log_20240101_120000_info.log    # INFO 이상 로그
-├── log_20240101_120000_verbose.log # VERBOSE 레벨만
-└── log_20240101_120000_debug.log   # DEBUG 레벨만
+├── log_20240101_120000_info.log    # INFO level and above
+├── log_20240101_120000_verbose.log # VERBOSE level only
+└── log_20240101_120000_debug.log   # DEBUG level only
 ```
 
-### 로그 포맷
+### Log Format
 
 ```
-{timestamp}, [{level}], [{filename}], {message}
+{timestamp}; [{level}]; [{filename}]; {message}
 ```
 
-예시:
+Example:
 ```
-2024-01-01 12:00:00, [INFO], [simulation.py], Simulation started
-2024-01-01 12:00:01, [WARN], [vehicle.py], Vehicle speed exceeds limit
+2024-01-01 12:00:00; [INFO]; [simulation.py          ]; Simulation started
+2024-01-01 12:00:01; [WARN]; [vehicle.py             ]; Vehicle speed exceeds limit
 ```
 
 ---
 
-## FutureWarning 처리
+## to_cli Parameter
 
-Python의 FutureWarning을 자동으로 로거로 리다이렉트합니다:
-- **콘솔/info.log**: 요약만 표시 (WARNING 레벨)
-- **debug.log**: 상세 정보 표시 (FUTUREWARN 레벨)
+All logging methods support the `to_cli` parameter to control console output.
+
+**Example:**
+```python
+logger = get_logger()
+
+# Normal logging (console + file)
+logger.info("This goes to console and file")
+
+# File only (skip console output)
+logger.info("This goes to file only", to_cli=False)
+logger.warning("File-only warning", to_cli=False)
+logger.error("File-only error", to_cli=False)
+```
+
+---
+
+## exc_info Parameter
+
+Include traceback information in log output.
+
+**Example:**
+```python
+logger = get_logger()
+
+try:
+    result = 1 / 0
+except ZeroDivisionError:
+    # Log error with full traceback
+    logger.error("Division failed", exc_info=True)
+
+    # Or use exception() method (exc_info=True by default)
+    logger.exception("Division failed")
+```
+
+---
+
+## verbose() Method
+
+VERBOSE level supports multiple arguments joined with ", ".
+
+**Example:**
+```python
+logger = get_logger()
+
+# Single argument
+logger.verbose("Processing step 1")
+
+# Multiple arguments (joined with ", ")
+logger.verbose("Step", "Position: 10.5", "Speed: 25.3")
+# Output: Step, Position: 10.5, Speed: 25.3
+```
+
+---
+
+## print_log_files()
+
+Print log file locations. Called automatically at script exit, but can be called manually.
+
+**Example:**
+```python
+logger = get_logger()
+
+# ... do some work ...
+
+# Print log file locations
+logger.print_log_files()
+# Output:
+# Log files:
+#   - info: logs/log_20240101_120000_info.log
+#   - verbose: logs/log_20240101_120000_verbose.log
+#   - debug: logs/log_20240101_120000_debug.log
+```
+
+---
+
+## FutureWarning Handling
+
+Python FutureWarnings are automatically redirected to the logger:
+- **Console/info.log**: Summary only (WARNING level)
+- **debug.log**: Detailed information (FUTUREWARN level)
 
 ```python
 import warnings
 warnings.warn("This feature will be deprecated", FutureWarning)
-# 콘솔: FutureWarning in my_script.py:10
-# debug.log: 전체 스택 트레이스
+# Console: FutureWarning in my_script.py:10
+# debug.log: Full stack trace
 ```
 
 ---
 
-## 활용 예시
+## Global Exception Hook
 
-### 기본 사용
+Unhandled exceptions are automatically logged via `sys.excepthook`.
+KeyboardInterrupt is silently ignored (no traceback).
+
+```python
+# Automatically set up when importing get_logger()
+from user_library.system_utils import get_logger
+logger = get_logger()
+
+# Any unhandled exception will be logged as ERROR with traceback
+raise ValueError("Something went wrong")
+# Logged: ERROR - Unhandled exception (with full traceback)
+```
+
+---
+
+## Usage Examples
+
+### Basic Usage
 
 ```python
 from user_library.system_utils import get_logger
 
 logger = get_logger()
 
-logger.debug("Debug message")      # debug.log에만 저장
-logger.verbose("Verbose message")  # 콘솔(청록색) + verbose.log
-logger.info("Info message")        # 콘솔(녹색) + info.log
-logger.warning("Warning message")  # 콘솔(노란색) + info.log
-logger.error("Error message")      # 콘솔(빨간색) + info.log
+logger.debug("Debug message")      # debug.log only
+logger.verbose("Verbose message")  # console (cyan) + verbose.log
+logger.info("Info message")        # console (green) + info.log
+logger.warning("Warning message")  # console (yellow) + info.log
+logger.error("Error message")      # console (red) + info.log
 ```
 
-### 로그 레벨 상수 활용
+### Using Log Level Constants
 
 ```python
 logger = get_logger()
 
-# 레벨 상수로 직접 로깅
+# Log at specific level using constant
 logger.log(logger.VERBOSE, "Custom verbose message")
 
-# 레벨 비교
+# Level comparison
 if current_level >= logger.WARNING:
     print("High priority log")
 ```
 
-### 커스텀 로거 생성
+### Custom Logger Creation
 
 ```python
 from user_library.system_utils import setup_logger
 import logging
 
-# 콘솔 출력 없이 파일만 저장
-file_only_logger = setup_logger("FileOnly", console=False)
+# File output only, no console
+file_logger, _ = setup_logger("FileOnly", console=False)
 
-# DEBUG 레벨부터 콘솔 출력
-debug_logger = setup_logger("Debug", level=logging.DEBUG)
+# Console output from DEBUG level
+debug_logger, _ = setup_logger("Debug", level=logging.DEBUG)
 ```
 
-### 다른 모듈에서 공유
+### Sharing Across Modules
 
 ```python
 # module_a.py
@@ -181,6 +276,18 @@ logger.info("Module A initialized")
 
 # module_b.py
 from user_library.system_utils import get_logger
-logger = get_logger()  # 같은 전역 로거 사용
+logger = get_logger()  # Same global logger
 logger.info("Module B initialized")
+```
+
+### Error Handling with Traceback
+
+```python
+logger = get_logger()
+
+try:
+    risky_operation()
+except Exception as e:
+    # Log with traceback
+    logger.error(f"Operation failed: {e}", exc_info=True)
 ```
