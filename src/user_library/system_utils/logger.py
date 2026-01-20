@@ -75,9 +75,9 @@ class ColorFormatter(logging.Formatter):
     # ANSI color codes
     COLORS = {
         logging.DEBUG: '\033[90m',      # Dim gray
-        VERBOSE_LEVEL: '\033[96m',      # Cyan
+        VERBOSE_LEVEL: '\033[92m',      # Green
         FUTURE_WARNING_LEVEL: '\033[93m',  # Yellow (same as warning)
-        logging.INFO: '\033[92m',       # Green
+        logging.INFO: '\033[96m',       # Cyan
         logging.WARNING: '\033[93m',    # Yellow
         logging.ERROR: '\033[91m',      # Red
         logging.CRITICAL: '\033[1;91m', # Bold Red
