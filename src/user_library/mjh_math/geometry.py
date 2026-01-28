@@ -1,9 +1,10 @@
 # mjh_math/geometry.py
 """
-Geometry utilities for OBB (Oriented Bounding Box) calculations
+Geometry utilities for vehicle simulations
 
-This module provides functions for working with oriented bounding boxes,
-primarily for vehicle collision detection and distance calculations in SUMO simulations.
+This module provides geometric functions for:
+- OBB (Oriented Bounding Box): collision detection and distance calculations
+- Curvature: polyline/lane curvature calculations using Menger curvature
 """
 
 import numpy as np
@@ -253,3 +254,122 @@ def calculate_obb_distance(obb1, obb2):
     arr2 = np.atleast_1d(obb2)
 
     return distance(arr1, arr2)
+
+
+# =============================================================================
+# Curvature Calculations
+# =============================================================================
+
+def menger_curvature(p1, p2, p3):
+    """Calculate Menger curvature from three consecutive points.
+
+    Menger curvature: κ = 4 * triangle_area / (a * b * c)
+    where a, b, c are side lengths of the triangle formed by three points.
+
+    For collinear points (straight line), curvature is exactly 0.
+
+    Args:
+        p1 (tuple): First point (x, y)
+        p2 (tuple): Second point (x, y) - curvature is calculated at this point
+        p3 (tuple): Third point (x, y)
+
+    Returns:
+        curvature (float): Signed curvature [1/m]
+            - Positive: left turn (counter-clockwise)
+            - Negative: right turn (clockwise)
+            - Zero: straight line
+
+    Example:
+        >>> # Straight line -> curvature = 0
+        >>> menger_curvature((0, 0), (1, 0), (2, 0))
+        0.0
+
+        >>> # Circle with radius R -> curvature = 1/R
+        >>> import math
+        >>> R = 10.0
+        >>> p1 = (R, 0)
+        >>> p2 = (R * math.cos(0.1), R * math.sin(0.1))
+        >>> p3 = (R * math.cos(0.2), R * math.sin(0.2))
+        >>> abs(menger_curvature(p1, p2, p3) - 1/R) < 0.01
+        True
+    """
+    # Side lengths
+    a = np.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
+    b = np.sqrt((p3[0] - p2[0])**2 + (p3[1] - p2[1])**2)
+    c = np.sqrt((p3[0] - p1[0])**2 + (p3[1] - p1[1])**2)
+
+    # Degenerate case (coincident points)
+    if a * b * c < 1e-12:
+        return 0.0
+
+    # Triangle area via Heron's formula
+    s = (a + b + c) / 2.0
+    area_sq = s * (s - a) * (s - b) * (s - c)
+
+    # Numerical stability (collinear or near-collinear)
+    if area_sq <= 0:
+        return 0.0
+
+    area = np.sqrt(area_sq)
+
+    # Menger curvature magnitude
+    curvature = 4.0 * area / (a * b * c)
+
+    # Sign via cross product (z-component)
+    # cross > 0: counter-clockwise (left turn) -> positive
+    # cross < 0: clockwise (right turn) -> negative
+    cross = (p2[0] - p1[0]) * (p3[1] - p2[1]) - (p2[1] - p1[1]) * (p3[0] - p2[0])
+    if cross < 0:
+        curvature = -curvature
+
+    return curvature
+
+
+def curvature_at_position(shape, position):
+    """Calculate curvature at a specific position along a polyline.
+
+    Finds three shape points around the given position and calculates
+    Menger curvature.
+
+    Args:
+        shape (list): List of (x, y) tuples representing the polyline
+        position (float): Position along the polyline [m] (from start)
+
+    Returns:
+        curvature (float): Signed curvature [1/m]
+            - Positive: left turn (counter-clockwise)
+            - Negative: right turn (clockwise)
+            - Zero: straight line or insufficient points
+
+    Example:
+        >>> shape = [(0, 0), (10, 0), (20, 5), (30, 10)]
+        >>> curvature_at_position(shape, 15.0)  # Near the curve
+    """
+    if len(shape) < 3:
+        return 0.0
+
+    # Find segment containing the position
+    cumulative_dist = 0.0
+    target_idx = 0
+
+    for i in range(len(shape) - 1):
+        p1 = shape[i]
+        p2 = shape[i + 1]
+        segment_length = np.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
+
+        if cumulative_dist + segment_length >= position:
+            target_idx = i
+            break
+        cumulative_dist += segment_length
+    else:
+        # Position beyond end - use last segment
+        target_idx = len(shape) - 2
+
+    # Select three points: [idx-1, idx, idx+1]
+    idx = max(1, min(target_idx, len(shape) - 2))
+
+    p1 = shape[idx - 1]
+    p2 = shape[idx]
+    p3 = shape[idx + 1]
+
+    return menger_curvature(p1, p2, p3)

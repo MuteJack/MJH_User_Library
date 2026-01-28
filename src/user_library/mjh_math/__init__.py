@@ -12,6 +12,8 @@ from .geometry import (
     calculate_polygon_distance,
     calculate_polygon_distances,
     get_obb_bounding_margin,
+    menger_curvature,
+    curvature_at_position,
 )
 
 from .basic_math import(
@@ -30,6 +32,8 @@ __all__ = [
     'calculate_polygon_distance',
     'calculate_polygon_distances',
     'get_obb_bounding_margin',
+    'menger_curvature',
+    'curvature_at_position',
     'normalize_angle',
     'normalize_angle_half',
     'get_decimal_places',
